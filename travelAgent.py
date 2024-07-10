@@ -1,3 +1,4 @@
+import json
 import os
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -12,13 +13,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
 
-llm = ChatOpenAI(model="gpt-3.5-turbo")
+OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 
-query = """
-Vou viajar para Londres em agosto de 2024. 
-Quero que faça um roteiro de viagem para mim com eventos que irão ocorrer
-na data da viagem e com o preço de passagem de São Paulo para Londres.
-"""
+llm = ChatOpenAI(model="gpt-3.5-turbo")
 
 
 def researchAgent(query, llm):
@@ -80,4 +77,25 @@ def getResponse(query, llm):
     return supervisorAgent(query, llm, webContext, relevant_documents)
 
 
-print(getResponse(query, llm).content)
+def lambda_handler(event, context):
+    # query = """
+    # Vou viajar para Londres em agosto de 2024.
+    # Quero que faça um roteiro de viagem para mim com eventos que irão ocorrer
+    # na data da viagem e com o preço de passagem de São Paulo para Londres.
+    # """
+
+    # query = event.get("question")
+
+    body = json.loads(event.get('body', {}))
+    query = body.get('question', 'Parâmetro question não fornecido')
+    response = getResponse(query, llm).content
+    return {
+        "body": json.dumps({
+            "message": "Tarefa concluída com sucesso",
+            "details": response
+        }),
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json"
+        }
+    }
